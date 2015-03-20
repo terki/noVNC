@@ -109,6 +109,8 @@
             msg += '<\/form>';
             $D('noVNC_status_bar').setAttribute("class", "noVNC_status_warn");
             $D('noVNC_status').innerHTML = msg;
+            var con = $D('connectButton');
+            if (con) con.style.display='none';
         }
         function setPassword() {
             rfb.sendPassword($D('password_input').value);
