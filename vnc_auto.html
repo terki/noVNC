@@ -51,8 +51,10 @@
                         Loading
                     </div></td>
                     <td width="1%"><div id="noVNC_buttons">
-                        <input type=button value="Send CtrlAltDel"
-                            id="sendCtrlAltDelButton">
+                        <!-- <input type=button value="Send CtrlAltDel"
+                            id="sendCtrlAltDelButton"> -->
+                            <input type="button" value="Disconnect" id="disconnectButton" />
+                            <input type="button" value="Connect" id="connectButton" />
                         <span id="noVNC_xvp_buttons">
                         <input type=button value="Shutdown"
                             id="xvpShutdownButton">
@@ -102,7 +104,8 @@
             msg = '<form onsubmit="return setPassword();"';
             msg += '  style="margin-bottom: 0px">';
             msg += 'Password Required: ';
-            msg += '<input type=password size=10 id="password_input" class="noVNC_status">';
+            msg += '<input type=password size=10 id="password_input" class="noVNC_status" autofocus>';
+            msg += '<input type="submit" value="Login">';
             msg += '<\/form>';
             $D('noVNC_status_bar').setAttribute("class", "noVNC_status_warn");
             $D('noVNC_status').innerHTML = msg;
@@ -113,6 +116,10 @@
         }
         function sendCtrlAltDel() {
             rfb.sendCtrlAltDel();
+            return false;
+        }
+        function disconnect() {
+            rfb.disconnect();
             return false;
         }
         function xvpShutdown() {
@@ -128,10 +135,12 @@
             return false;
         }
         function updateState(rfb, state, oldstate, msg) {
-            var s, sb, cad, level;
+            var s, sb, cad, level, dis, con;
             s = $D('noVNC_status');
             sb = $D('noVNC_status_bar');
             cad = $D('sendCtrlAltDelButton');
+            dis = $D('disconnectButton');
+            con = $D('connectButton');
             switch (state) {
                 case 'failed':       level = "error";  break;
                 case 'fatal':        level = "error";  break;
@@ -142,11 +151,16 @@
             }
 
             if (state === "normal") {
-                cad.disabled = false;
+                if (cad) cad.disabled = false;
+                if (dis) dis.style.display='inline';
+                if (con) con.style.display='none';
             } else {
-                cad.disabled = true;
+                if (cad) cad.disabled = true;
+                if (dis) dis.style.display='none';
+                if (con) con.style.display='inline';
                 xvpInit(0);
             }
+
 
             if (typeof(msg) !== 'undefined') {
                 sb.setAttribute("class", "noVNC_status_" + level);
@@ -175,10 +189,27 @@
         }
 
         window.onscriptsload = function () {
-            var host, port, password, path, token;
+            var host, port, password, path, token, connect;
 
-            $D('sendCtrlAltDelButton').style.display = "inline";
-            $D('sendCtrlAltDelButton').onclick = sendCtrlAltDel;
+            var cad=$D('sendCtrlAltDelButton');
+            if (cad) {
+                cad.style.display = "inline";
+                cad.onclick = sendCtrlAltDel;
+            }
+            var dis=$D('disconnectButton');
+            if (dis) {
+                dis.style.display = "inline";
+                dis.onclick = disconnect;
+            }
+            var con=$D('connectButton');
+            if (con) {
+                con.style.display = "inline";
+                con.onclick = function () {
+                    connect();
+                    return false;
+                };
+            }
+
             $D('xvpShutdownButton').onclick = xvpShutdown;
             $D('xvpRebootButton').onclick = xvpReboot;
             $D('xvpResetButton').onclick = xvpReset;
@@ -216,19 +247,23 @@
                 return;
             }
 
-            rfb = new RFB({'target':       $D('noVNC_canvas'),
-                           'encrypt':      WebUtil.getQueryVar('encrypt',
-                                    (window.location.protocol === "https:")),
-                           'repeaterID':   WebUtil.getQueryVar('repeaterID', ''),
-                           'true_color':   WebUtil.getQueryVar('true_color', true),
-                           'local_cursor': WebUtil.getQueryVar('cursor', true),
-                           'shared':       WebUtil.getQueryVar('shared', true),
-                           'view_only':    WebUtil.getQueryVar('view_only', false),
-                           'onUpdateState':  updateState,
-                           'onXvpInit':    xvpInit,
-                           'onPasswordRequired':  passwordRequired,
-                           'onFBUComplete': FBUComplete});
-            rfb.connect(host, port, password, path);
+            connect = function() {
+                rfb = new RFB({'target':       $D('noVNC_canvas'),
+                               'encrypt':      WebUtil.getQueryVar('encrypt',
+                                        (window.location.protocol === "https:")),
+                               'repeaterID':   WebUtil.getQueryVar('repeaterID', ''),
+                               'true_color':   WebUtil.getQueryVar('true_color', true),
+                               'local_cursor': WebUtil.getQueryVar('cursor', true),
+                               'shared':       WebUtil.getQueryVar('shared', true),
+                               'view_only':    WebUtil.getQueryVar('view_only', false),
+                               'onUpdateState':  updateState,
+                               'onXvpInit':    xvpInit,
+                               'onPasswordRequired':  passwordRequired,
+                               'onFBUComplete': FBUComplete});
+                rfb.connect(host, port, password, path);                
+            };
+            connect();
+
         };
         </script>
 
