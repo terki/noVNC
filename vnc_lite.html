@@ -39,18 +39,32 @@
         #status {
             text-align: center;
         }
-        #sendCtrlAltDelButton {
+        #buttons {
             position: fixed;
             top: 0px;
             right: 0px;
+        }
+        #buttons div {
             border: 1px outset;
             padding: 5px 5px 4px 5px;
             cursor: pointer;
+            display: inline-block;
+            margin-right: 10px;
         }
-
         #screen {
+            display: table;
             flex: 1; /* fill remaining space */
             overflow: hidden;
+            background-color:#313131;
+            border-bottom-right-radius: 800px 600px;
+        }
+        #screen canvas {
+            position: absolute;
+            left: 0;
+            right: 0;
+            margin-left: auto;
+            margin-right: auto;
+            cursor: pointer !important;
         }
 
     </style>
@@ -66,6 +80,8 @@
         // successfully connected to a server
         function connectedToServer(e) {
             status("Connected to " + desktopName);
+            document.getElementById('disconnectButton').style.display = 'inherit';
+            document.getElementById('connectButton').style.display = 'none';
         }
 
         // This function is called when we are disconnected
@@ -75,12 +91,15 @@
             } else {
                 status("Something went wrong, connection is closed");
             }
+            document.getElementById('disconnectButton').style.display = 'none';
+            document.getElementById('connectButton').style.display = 'inherit';
+
         }
 
         // When this function is called, the server requires
         // credentials to authenticate
         function credentialsAreRequired(e) {
-            const password = prompt("Password required:");
+            const password = prompt("Password required:") || "";
             rfb.sendCredentials({ password: password });
         }
 
@@ -123,8 +142,12 @@
             return defaultValue;
         }
 
-        document.getElementById('sendCtrlAltDelButton')
-            .onclick = sendCtrlAltDel;
+        //document.getElementById('sendCtrlAltDelButton')
+        //    .onclick = sendCtrlAltDel;
+        document.getElementById('disconnectButton')
+            .onclick = () => rfb.disconnect();
+        document.getElementById('connectButton')
+            .onclick = () => connect();
 
         // Read parameters specified in the URL query string
         // By default, use the host and port of server that served this file
@@ -137,41 +160,49 @@
         // | | | Connect | | |
         // v v v         v v v
 
-        status("Connecting");
+        function connect() {
 
-        // Build the websocket URL used to connect
-        let url;
-        if (window.location.protocol === "https:") {
-            url = 'wss';
-        } else {
-            url = 'ws';
+            status("Connecting");
+
+            // Build the websocket URL used to connect
+            let url;
+            if (window.location.protocol === "https:") {
+                url = 'wss';
+            } else {
+                url = 'ws';
+            }
+            url += '://' + host;
+            if(port) {
+                url += ':' + port;
+            }
+            url += '/' + path;
+
+            // Creating a new RFB object will start a new connection
+            rfb = new RFB(document.getElementById('screen'), url,
+                        { credentials: { password: password } });
+
+            // Add listeners to important events from the RFB module
+            rfb.addEventListener("connect",  connectedToServer);
+            rfb.addEventListener("disconnect", disconnectedFromServer);
+            rfb.addEventListener("credentialsrequired", credentialsAreRequired);
+            rfb.addEventListener("desktopname", updateDesktopName);
+
+            // Set parameters that can be changed on an active connection
+            rfb.viewOnly = readQueryVariable('view_only', false);
+            rfb.scaleViewport = readQueryVariable('scale', false);
         }
-        url += '://' + host;
-        if(port) {
-            url += ':' + port;
-        }
-        url += '/' + path;
-
-        // Creating a new RFB object will start a new connection
-        rfb = new RFB(document.getElementById('screen'), url,
-                      { credentials: { password: password } });
-
-        // Add listeners to important events from the RFB module
-        rfb.addEventListener("connect",  connectedToServer);
-        rfb.addEventListener("disconnect", disconnectedFromServer);
-        rfb.addEventListener("credentialsrequired", credentialsAreRequired);
-        rfb.addEventListener("desktopname", updateDesktopName);
-
-        // Set parameters that can be changed on an active connection
-        rfb.viewOnly = readQueryVariable('view_only', false);
-        rfb.scaleViewport = readQueryVariable('scale', false);
+        connect();
     </script>
 </head>
 
 <body>
     <div id="top_bar">
+        <div id="buttons">
+          <!--<div id="sendCtrlAltDelButton">Send CtrlAltDel</div> -->
+          <div id="disconnectButton" style="display: none">Disconnect</div>
+          <div id="connectButton" style="display: none">Connect</div>
+        </div>
         <div id="status">Loading</div>
-        <div id="sendCtrlAltDelButton">Send CtrlAltDel</div>
     </div>
     <div id="screen">
         <!-- This is where the remote screen will appear -->
