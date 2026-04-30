@@ -82,7 +82,7 @@
             status("Connected to " + desktopName);
             document.getElementById('disconnectButton').style.display = 'inherit';
             document.getElementById('connectButton').style.display = 'none';
-            document.getElementById('fullscreenButton').style.display = 'inherit';
+            if (window.self == window.top) document.getElementById('fullscreenButton').style.display = 'inherit';
         }
 
         // This function is called when we are disconnected
