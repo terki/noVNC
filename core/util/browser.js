@@ -162,7 +162,13 @@ async function _checkWebCodecsH264DecodeSupport() {
     decoder.configure(config);
     decoder.decode(chunk);
     try {
-        await decoder.flush();
+        // await decoder.flush();
+        // fix mentioned in https://github.com/novnc/noVNC/issues/2034#issuecomment-3853980831
+        const flushPromise = decoder.flush();
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('timeout')), 5000);
+        });
+        await Promise.race([flushPromise, timeoutPromise]);        
     } catch (e) {
         // Firefox incorrectly throws an exception here
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1932566
